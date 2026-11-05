@@ -113,8 +113,14 @@ label{display:flex;gap:6px;align-items:center}
 .delta{font-size:13px;font-weight:600;margin-top:2px}
 .delta.plus{color:var(--vert)}.delta.moins{color:var(--rouge)}.delta.nul{color:var(--doux)}
 table{border-collapse:collapse;width:100%;background:var(--carte);border:1px solid var(--bord);border-radius:10px;overflow:hidden}
-.defil{overflow-x:auto}
-th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--bord);white-space:nowrap}
+.tj{table-layout:auto}
+.tj th,.tj td{white-space:normal;padding:6px 5px;font-size:13px;line-height:1.3}
+.tj th{font-size:11px}
+.tj .puce{font-size:11px;padding:1px 7px}
+.tj td:first-child .sous{font-size:11px}
+@media (max-width:560px){.tj .opt{display:none}}
+@media (max-width:640px){main{padding:14px 8px 40px}.tj th,.tj td{padding:5px 3px;font-size:12px}.tj th{font-size:10px}.tj .puce{font-size:10px;padding:0 5px}}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--bord)}
 th{font-size:12px;color:var(--doux);font-weight:600;text-transform:uppercase;letter-spacing:.03em;background:var(--bg)}
 th:first-child,td:first-child,td.g,th.g{text-align:left}
 tr.titre td{background:var(--bg);font-weight:700;color:var(--accent);text-align:left}
@@ -154,7 +160,7 @@ tr.detail td{background:var(--bg);white-space:normal;text-align:left;font-size:1
 <h2>3. Origine du tdc gagné par l'alliance</h2><div id="origine"></div>
 <h2>4. À signaler</h2><div id="signaler"></div>
 <h2>5. Tous les joueurs <span class="sous" style="text-transform:none;letter-spacing:0">— cliquer sur un joueur pour voir ses floods</span></h2>
-<div class="defil" id="joueurs"></div>
+<div id="joueurs"></div>
 <p class="note" id="seuils"></p>
 </main>
 <script>
@@ -223,18 +229,16 @@ function stats(W) {
       if (somme(prec, i => S[i].h) >= heures / 2) { A = rate(prec, montant); B = rate(idx, montant); }
     }
     if (A) { const r = B / A - 1; tendance = r > T.tendance ? "↑" : r < -T.tendance ? "↓" : "→"; }
-    // chasse vs habitude (chasseurs) : la fenêtre contre ce qui précède ; sans recul, dernier jour contre le reste
+    // perf vs habitude (tous les joueurs) : la fenêtre contre ce qui précède ; sans recul, dernier jour contre le reste
     let vsHab = null;
-    if (chass) {
-      if (hAvant >= 24) { const h = rate(avant, montant); if (h) vsHab = Math.round(100 * rate(idx, montant) / h); }
-      else if (heures >= 72) {
-        const der = idx.filter(i => S[i].t > W.t1 - 24 * H), reste = idx.filter(i => S[i].t <= W.t1 - 24 * H), h = rate(reste, montant);
-        if (h) vsHab = Math.round(100 * rate(der, montant) / h);
-      }
+    if (hAvant >= 24) { const h = rate(avant, montant); if (h) vsHab = Math.round(100 * rate(idx, montant) / h); }
+    else if (heures >= 72) {
+      const der = idx.filter(i => S[i].t > W.t1 - 24 * H), reste = idx.filter(i => S[i].t <= W.t1 - 24 * H), h = rate(reste, montant);
+      if (h) vsHab = Math.round(100 * rate(der, montant) / h);
     }
     const s = {m, moy, tot, pct: pc, inc, hors, pause: Math.round(pause / H), tendance, vsHab, signaux: []};
     if (!chass && pc !== null && pc < T.noeud) s.signaux.push("retient le flux");
-    if (vsHab !== null && vsHab < T.habitude) s.signaux.push("chasse en baisse");
+    if (vsHab !== null && vsHab < T.habitude) s.signaux.push("perf en baisse");
     if (inc !== null && inc > T.incertain) s.signaux.push("données fragiles");
     if (hors !== null && hors > T.hors) s.signaux.push("floods hors chaîne");
     st[n] = s;
@@ -288,9 +292,9 @@ function rendre() {
       <div>${typ === "Chasseur" ? `<b>${fmt(s.moy)}</b> chassés / jour${s.pct !== null ? ` (${s.pct} % du chassé de la chaîne)` : ""}`
         : `<b>${s.pct} %</b> du chassé de la chaîne (${fmt(s.moy)} envoyés / jour)`}</div></div>`;
   $("champions").innerHTML = carteChamp("🏆 Meilleur chasseur", champ("Chasseur", "moy", true), "Chasseur") +
-    carteChamp("Moins bon chasseur", champ("Chasseur", "moy", false), "Chasseur") +
+    carteChamp("👾 Moins bon chasseur", champ("Chasseur", "moy", false), "Chasseur") +
     carteChamp("🏆 Meilleur passeur", champ("Passeur", "pct", true), "Passeur") +
-    carteChamp("Moins bon passeur", champ("Passeur", "pct", false), "Passeur");
+    carteChamp("👾 Moins bon passeur", champ("Passeur", "pct", false), "Passeur");
 
   // 3. origine du tdc
   const croissance = (arr.tdc !== null && dep.tdc !== null) ? arr.tdc - dep.tdc : null;
@@ -310,19 +314,19 @@ function rendre() {
 
   // 5. tous les joueurs
   const cl = c => c ? ` class="${c}"` : "";
-  let t = `<table><tr><th>Joueur</th><th class="g">Rôle · chaîne</th><th>Moy. / jour</th><th>% du chassé</th><th>Tendance</th><th>Chasse vs habitude</th><th>% incertain</th><th>% hors chaîne</th><th>Pause max (h)</th><th class="g">Signaux</th></tr>`;
+  let t = `<table class="tj"><tr><th>Joueur</th><th>Moy. / jour</th><th>% du chassé</th><th>Tendance</th><th>Perf vs habitude</th><th class="opt">% incertain</th><th class="opt">% hors chaîne</th><th>Pause max (h)</th><th class="g">Signaux</th></tr>`;
   for (const c of ["ouest", "est"]) {
-    t += `<tr class="titre"><td colspan="10">Chaîne ${c}</td></tr>`;
+    t += `<tr class="titre"><td colspan="9">Chaîne ${c}</td></tr>`;
     for (const typ of POSTES) for (const m of DATA.membres.filter(m => m.type === typ && m.chaine === c).sort((a, b) => a.pos - b.pos)) {
       const s = st[m.pseudo];
       const c2 = (typ !== "Chasseur" && s.pct !== null && s.pct < T.noeud) ? "rouge" : "";
       const c4 = s.tendance === "↑" ? "vert" : s.tendance === "↓" ? "rouge" : "";
       const c5 = (s.vsHab !== null && s.vsHab < T.habitude) ? "rouge" : "";
       const c6 = (s.inc !== null && s.inc > T.incertain) ? "jaune" : "", c7 = (s.hors !== null && s.hors > T.hors) ? "orange" : "";
-      t += `<tr class="joueur" data-n="${esc(m.pseudo)}"><td>${esc(m.pseudo)}</td><td class="g">${esc(m.type)} · ${m.pos}</td>
+      t += `<tr class="joueur" data-n="${esc(m.pseudo)}"><td><b>${esc(m.pseudo)}</b><div class="sous">${esc(m.type)} · ${m.pos}</div></td>
         <td>${fmt(s.moy)}</td><td${cl(c2)}>${s.pct !== null ? s.pct + " %" : ""}</td><td${cl(c4)}>${s.tendance}</td>
-        <td${cl(c5)}>${s.vsHab !== null ? s.vsHab + " %" : ""}</td><td${cl(c6)}>${s.inc !== null ? s.inc + " %" : ""}</td>
-        <td${cl(c7)}>${s.hors !== null ? s.hors + " %" : ""}</td><td>${s.pause}</td><td class="g">${s.signaux.map(puce).join("")}</td></tr>`;
+        <td${cl(c5)}>${s.vsHab !== null ? s.vsHab + " %" : ""}</td><td class="opt${c6 ? " " + c6 : ""}">${s.inc !== null ? s.inc + " %" : ""}</td>
+        <td class="opt${c7 ? " " + c7 : ""}">${s.hors !== null ? s.hors + " %" : ""}</td><td>${s.pause}</td><td class="g">${s.signaux.map(puce).join("")}</td></tr>`;
     }
   }
   $("joueurs").innerHTML = t + "</table>";
@@ -336,14 +340,14 @@ function rendre() {
     }
     const liste = (o, f) => Object.entries(o).sort((a, b) => b[1].x - a[1].x).map(([k, v]) => `${f} ${esc(k)} ${fmt(v.x)}${v.q ? " ?" : ""}`).join(" ; ");
     const d = document.createElement("tr"); d.className = "detail";
-    d.innerHTML = `<td colspan="10"><div><b>Envoyés</b> : ${liste(lances, "→") || "<span class=vide>aucun flood</span>"}</div>
+    d.innerHTML = `<td colspan="9"><div><b>Envoyés</b> : ${liste(lances, "→") || "<span class=vide>aucun flood</span>"}</div>
       <div><b>Subis</b> : ${liste(subis, "←") || "<span class=vide>aucun</span>"}</div></td>`;
     tr.after(d);
   }));
-  $("seuils").textContent = `Seuils : retient le flux < ${T.noeud} % du chassé ; chasse en baisse < ${T.habitude} % de l'habitude ; ` +
+  $("seuils").textContent = `Seuils : retient le flux < ${T.noeud} % du chassé ; perf en baisse < ${T.habitude} % de l'habitude ; ` +
     `données fragiles > ${T.incertain} % d'envois à cible incertaine ; floods hors chaîne (vers un joueur hors alliance, plus de ${T.horsChasse} % du chassé quotidien de la chaîne) > ${T.hors} % ; ` +
     `tendance ±${Math.round(T.tendance * 100)} %. Tout est comparé au tdc chassé de la chaîne. Tendance : seconde moitié de la plage contre la première (moins de 48 h : contre la période précédente). ` +
-    `Chasse vs habitude : la plage contre ce qui précède (sinon dernier jour contre le reste). « Pause max » : plus longue période sans activité. ` +
+    `Perf vs habitude : la chasse (chasseurs) ou les floods envoyés (autres) sur la plage contre ce qui précède (sinon dernier jour contre le reste) ; en baisse sous ${T.habitude} %. « Pause max » : plus longue période sans activité. ` +
     `Jaune = données fragiles, orange = floods hors chaîne. « Aujourd'hui » et « Hier » suivent les jours à Paris.`;
 }
 $("plage").addEventListener("change", () => {
