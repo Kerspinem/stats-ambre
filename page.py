@@ -171,11 +171,10 @@ tr.detail td{background:var(--bg);white-space:normal;text-align:left;font-size:1
 </div>
 <div id="etat" class="sous"></div>
 <h2>1. Bilan alliance</h2><div class="kpis" id="bilan"></div><div id="origine" style="margin-top:14px"></div>
-<h2>2. Bilan des chaînes</h2><div class="cartes" id="chaines"></div>
-<h2>3. Schéma des chaînes</h2><div class="carte" id="schema"></div>
-<h2>4. Champions</h2><div class="cartes" id="champions"></div>
-<h2>5. À signaler</h2><div id="signaler"></div>
-<h2>6. Tous les joueurs <span class="sous" style="text-transform:none;letter-spacing:0">— cliquer sur un joueur pour voir ses floods</span></h2>
+<h2>2. Bilan des chaînes</h2><div class="cartes" id="chaines"></div><div class="carte" id="schema" style="margin-top:12px"></div>
+<h2>3. Champions</h2><div class="cartes" id="champions"></div>
+<h2>4. À signaler</h2><div id="signaler"></div>
+<h2>5. Tous les joueurs <span class="sous" style="text-transform:none;letter-spacing:0">— cliquer sur un joueur pour voir ses floods</span></h2>
 <div id="joueurs"></div>
 <p class="note" id="seuils"></p>
 </main>
@@ -280,16 +279,17 @@ function schema(W) {
   for (const e of edges) {
     const [x1, y1] = XY(e.a.pseudo), [x2, y2] = XY(e.b.pseudo), r1 = R(e.a.pseudo), r2 = R(e.b.pseudo);
     const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+    if (L < r1 + r2 + 3.5) continue;  // trop proches : pas de place pour une flèche lisible
     const couleur = e.b.type === "Chasseur" ? COL.Chasseur : e.a.type === "Grenier" ? COL.Grenier : COL.Passeur;
-    const zero = e.f === 0, w = zero ? 0.3 : 0.4 + 2.6 * Math.pow(e.f / fmax, 0.65);
+    const zero = e.f === 0, w = zero ? 0.2 : 0.25 + 1.5 * Math.pow(e.f / fmax, 0.65);
     const s = [x1 + ux * (r1 + 0.6), y1 + uy * (r1 + 0.6)], en = [x2 - ux * (r2 + 0.6), y2 - uy * (r2 + 0.6)];
-    const hl = Math.max(1.8, w * 1.8), hw = Math.max(1.3, w * 1.1), b = [en[0] - ux * hl, en[1] - uy * hl];
+    const hl = Math.max(1.4, w * 1.5), hw = Math.max(0.95, w * 0.9), b = [en[0] - ux * hl, en[1] - uy * hl];
     const pt = (q, k) => `${(q[0] + nx * k).toFixed(2)},${(q[1] + ny * k).toFixed(2)}`;
     const titre = `<title>${esc(e.a.pseudo)} → ${esc(e.b.pseudo)} : ${fmt(e.f)} sur la plage</title>`;
     fl += zero
       ? `<g opacity=".7"><line x1="${s[0]}" y1="${s[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${couleur}" stroke-width="0.3" stroke-dasharray="1 0.9"/>
          <polygon points="${pt(b, hw)} ${en[0].toFixed(2)},${en[1].toFixed(2)} ${pt(b, -hw)}" fill="${couleur}" opacity=".6"/>${titre}</g>`
-      : `<polygon points="${pt(s, w / 2)} ${pt(b, w / 2)} ${pt(b, hw)} ${en[0].toFixed(2)},${en[1].toFixed(2)} ${pt(b, -hw)} ${pt(b, -w / 2)} ${pt(s, -w / 2)}" fill="${couleur}" opacity=".88">${titre}</polygon>`;
+      : `<polygon points="${pt(s, w / 2)} ${pt(b, w / 2)} ${pt(b, hw)} ${en[0].toFixed(2)},${en[1].toFixed(2)} ${pt(b, -hw)} ${pt(b, -w / 2)} ${pt(s, -w / 2)}" fill="${couleur}" stroke="#fff" stroke-width="0.22" stroke-linejoin="round">${titre}</polygon>`;
     const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, d = String(Math.round(L)), pw = 2.6 + 1.25 * d.length;
     pills += `<rect x="${(mx - pw / 2).toFixed(2)}" y="${(my - 1.5).toFixed(2)}" width="${pw}" height="3" rx="1.5" fill="var(--carte)" stroke="${couleur}" stroke-width="0.25"/>
       <text x="${mx.toFixed(2)}" y="${(my + 0.9).toFixed(2)}" text-anchor="middle" style="font-size:2.3px">${d}</text>`;
@@ -305,15 +305,15 @@ function schema(W) {
       {x: x - largeur / 2, y: y - r - 4.2, w: largeur}, {x: dr.x, y: y + 4.9, w: largeur}, {x: ga.x, y: y + 4.9, w: largeur}]);
     const ch = cand.find(libre) || cand[0], bx = ch.x, by = ch.y;
     boites.push({x: bx, y: by, w: largeur});
-    nodes += `<g><circle cx="${x}" cy="${y}" r="${(r * 1.6).toFixed(2)}" fill="${c}" opacity=".13"/>
-      <circle cx="${x}" cy="${y}" r="${r.toFixed(2)}" fill="${c}"><title>${esc(m.pseudo)} — tdc ${fmt(tdc(m.pseudo))}</title></circle>
+    nodes += `<g><circle cx="${x}" cy="${y}" r="${(r * 1.85).toFixed(2)}" fill="${c}" opacity=".16"/>
+      <circle cx="${x}" cy="${y}" r="${r.toFixed(2)}" fill="${c}" stroke="#fff" stroke-width="0.5"><title>${esc(m.pseudo)} — tdc ${fmt(tdc(m.pseudo))}</title></circle>
       <rect x="${bx.toFixed(2)}" y="${by.toFixed(2)}" width="${largeur.toFixed(2)}" height="3.4" rx="0.9" fill="var(--carte)" stroke="${c}" stroke-width="0.3"/>
       <text x="${(bx + largeur / 2).toFixed(2)}" y="${(by + 2.45).toFixed(2)}" text-anchor="middle" style="font-size:2.5px;font-weight:600">${esc(m.pseudo)}</text></g>`;
   }
   $("schema").innerHTML = `<svg class="sch" viewBox="-10 -7 126 80" role="img" aria-label="Schéma des chaînes">${grille}${fl}${pills}${nodes}</svg>
     <div class="legende"><span><i style="background:${COL.Grenier}"></i>Grenier</span><span><i style="background:${COL.Passeur}"></i>Passeur</span>
     <span><i style="background:${COL.Chasseur}"></i>Chasseur</span><span>Taille du point : tdc au ${quand(S[i1].t)}</span>
-    <span>Épaisseur de la flèche : tdc pris sur la plage (pointillé : aucun flux)</span><span>Pastille : distance en cases</span></div>`;
+    <span>Épaisseur de la flèche : tdc pris sur la plage (pointillé : aucun flux)</span><span>Pastille : distance en cases (pas de flèche si les joueurs sont trop proches)</span></div>`;
 }
 
 function rendre() {
