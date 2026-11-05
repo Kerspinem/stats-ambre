@@ -122,11 +122,14 @@ label{display:flex;gap:6px;align-items:center}
 .delta{font-size:13px;font-weight:600;margin-top:2px}
 .delta.plus{color:var(--vert)}.delta.moins{color:var(--rouge)}.delta.nul{color:var(--doux)}
 table{border-collapse:collapse;width:100%;background:var(--carte);border:1px solid var(--bord);border-radius:10px;overflow:hidden}
-.tj{table-layout:auto}
+.tj{table-layout:auto;width:auto;max-width:100%}
+.tj td:first-child,.tj th:first-child{min-width:140px}
 .tj th,.tj td{white-space:normal;padding:8px 7px;font-size:15px;line-height:1.3}
 .tj th{font-size:12px}
 .tj .puce{font-size:12px;padding:1px 8px;white-space:normal;line-height:1.15;border-radius:10px}
 .tj .sig{width:98px;max-width:98px}
+.tj th.n{width:58px;padding-left:4px;padding-right:4px}
+.tj td:not(:first-child):not(.sig){padding-left:4px;padding-right:4px}
 .tj td:first-child .sous{font-size:12px}
 @media (max-width:560px){.tj .opt{display:none}}
 @media (max-width:640px){main{padding:14px 8px 40px}.tj th,.tj td{padding:6px 4px;font-size:13px}.tj th{font-size:10.5px}.tj .puce{font-size:11px;padding:0 6px}}
@@ -387,7 +390,7 @@ function rendre() {
 
   // 5. tous les joueurs
   const cl = c => c ? ` class="${c}"` : "";
-  let t = `<table class="tj"><tr><th>Joueur</th><th>Moy. / jour</th><th>% tdc chassé</th><th class="opt">% tdc hors chaîne</th><th>Tendance</th><th class="opt">% incertain</th><th>Pause max (h)</th><th class="g sig">Signaux</th></tr>`;
+  let t = `<table class="tj"><tr><th>Joueur</th><th class="n">Moy.<br>/ jour</th><th class="n">% tdc<br>chaîne</th><th class="n opt">% tdc<br>hors chaîne</th><th class="n">Tendance</th><th class="n opt">%<br>incertain</th><th class="n">Pause<br>max (h)</th><th class="g sig">Signaux</th></tr>`;
   for (const c of ["ouest", "est"]) {
     t += `<tr class="titre"><td colspan="8">Chaîne ${c}</td></tr>`;
     for (const typ of POSTES) for (const m of DATA.membres.filter(m => m.type === typ && m.chaine === c).sort((a, b) => a.pos - b.pos)) {
