@@ -281,15 +281,13 @@ function schema(W) {
     const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
     if (L < r1 + r2 + 3.5) continue;  // trop proches : pas de place pour une flèche lisible
     const couleur = e.b.type === "Chasseur" ? COL.Chasseur : e.a.type === "Grenier" ? COL.Grenier : COL.Passeur;
-    const zero = e.f === 0, w = zero ? 0.2 : 0.25 + 1.5 * Math.pow(e.f / fmax, 0.65);
+    if (e.f === 0) continue;  // pas de flux sur la plage : pas de flèche
+    const w = 0.8;  // flèche toujours identique
     const s = [x1 + ux * (r1 + 0.6), y1 + uy * (r1 + 0.6)], en = [x2 - ux * (r2 + 0.6), y2 - uy * (r2 + 0.6)];
-    const hl = Math.max(1.4, w * 1.5), hw = Math.max(0.95, w * 0.9), b = [en[0] - ux * hl, en[1] - uy * hl];
+    const hl = 2.0, hw = 1.25, b = [en[0] - ux * hl, en[1] - uy * hl];
     const pt = (q, k) => `${(q[0] + nx * k).toFixed(2)},${(q[1] + ny * k).toFixed(2)}`;
     const titre = `<title>${esc(e.a.pseudo)} → ${esc(e.b.pseudo)} : ${fmt(e.f)} sur la plage</title>`;
-    fl += zero
-      ? `<g opacity=".7"><line x1="${s[0]}" y1="${s[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${couleur}" stroke-width="0.3" stroke-dasharray="1 0.9"/>
-         <polygon points="${pt(b, hw)} ${en[0].toFixed(2)},${en[1].toFixed(2)} ${pt(b, -hw)}" fill="${couleur}" opacity=".6"/>${titre}</g>`
-      : `<polygon points="${pt(s, w / 2)} ${pt(b, w / 2)} ${pt(b, hw)} ${en[0].toFixed(2)},${en[1].toFixed(2)} ${pt(b, -hw)} ${pt(b, -w / 2)} ${pt(s, -w / 2)}" fill="${couleur}" stroke="#fff" stroke-width="0.22" stroke-linejoin="round">${titre}</polygon>`;
+    fl += `<polygon points="${pt(s, w / 2)} ${pt(b, w / 2)} ${pt(b, hw)} ${en[0].toFixed(2)},${en[1].toFixed(2)} ${pt(b, -hw)} ${pt(b, -w / 2)} ${pt(s, -w / 2)}" fill="${couleur}">${titre}</polygon>`;
     const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, d = String(Math.round(L)), pw = 2.6 + 1.25 * d.length;
     pills += `<rect x="${(mx - pw / 2).toFixed(2)}" y="${(my - 1.5).toFixed(2)}" width="${pw}" height="3" rx="1.5" fill="var(--carte)" stroke="${couleur}" stroke-width="0.25"/>
       <text x="${mx.toFixed(2)}" y="${(my + 0.9).toFixed(2)}" text-anchor="middle" style="font-size:2.3px">${d}</text>`;
@@ -313,7 +311,7 @@ function schema(W) {
   $("schema").innerHTML = `<svg class="sch" viewBox="-10 -7 126 80" role="img" aria-label="Schéma des chaînes">${grille}${fl}${pills}${nodes}</svg>
     <div class="legende"><span><i style="background:${COL.Grenier}"></i>Grenier</span><span><i style="background:${COL.Passeur}"></i>Passeur</span>
     <span><i style="background:${COL.Chasseur}"></i>Chasseur</span><span>Taille du point : tdc au ${quand(S[i1].t)}</span>
-    <span>Épaisseur de la flèche : tdc pris sur la plage (pointillé : aucun flux)</span><span>Pastille : distance en cases (pas de flèche si les joueurs sont trop proches)</span></div>`;
+    <span>Flèche : tdc pris sur la plage (pas de flèche : aucun flux)</span><span>Pastille : distance en cases (pas de flèche si les joueurs sont trop proches)</span></div>`;
 }
 
 function rendre() {
