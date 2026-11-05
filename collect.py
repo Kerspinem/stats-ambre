@@ -253,6 +253,7 @@ def traiter(state, version, players):
         state["terrain"][str(p["id"])] = p["field"]
     append(CSV_PL, PL_COLS, rows)
     state["ids"] = sorted(ids)
+    state["pos"] = {p["pseudo"]: [p["x"], p["y"]] for p in players if p["id"] in ids}
     state["last"] = version
     return len(rows)
 
@@ -275,6 +276,11 @@ def collecter():
         n = traiter(state, v, get(f"{BASE}players/?version={v}"))
         json.dump(state, open(STATE, "w"))
         print("ok", v, n, "joueurs")
+    if "pos" not in state and liste:  # positions absentes de l'état (anciennes versions du script)
+        time.sleep(2)
+        ids = set(state["ids"]) | EXTRA_IDS
+        state["pos"] = {p["pseudo"]: [p["x"], p["y"]] for p in get(f"{BASE}players/?version={liste[-1]}") if p["id"] in ids}
+        json.dump(state, open(STATE, "w"))
     completer_totaux()
 
 

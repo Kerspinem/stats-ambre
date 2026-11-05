@@ -69,7 +69,16 @@ def donnees(D, lignes_att):
     totaux = [{"tdc": num(al[v], 2) if v in al else None, "mem": num(al[v], 6) if v in al else None,
                "fou": num(al[v], 7) if v in al else None, "tec": num(al[v], 8) if v in al else None,
                "tro": num(al[v], 9) if v in al else None} for v in versions]
-    return dict(steps=steps, first=versions[0], al=totaux,
+    # tdc de chaque joueur à chaque relevé, et positions (pour le schéma)
+    tdc = {nom: [0] * n for nom in noms}
+    for r in pl:
+        if r[3] in tdc and r[0] in idx:
+            tdc[r[3]][idx[r[0]]] = int(r[5])
+    try:
+        positions = json.load(open(collect.STATE)).get("pos", {})
+    except Exception:
+        positions = {}
+    return dict(steps=steps, first=versions[0], al=totaux, tdc=tdc, pos=positions,
                 membres=[dict(pseudo=m["pseudo"], type=m["type"], chaine=m["chaine"], pos=m["pos"]) for m in membres],
                 s=s, c=c, p=p, o=o, chaine=chaine, att=att,
                 seuils=dict(noeud=fe.SEUIL_NOEUD, incertain=fe.SEUIL_INCERTAIN, hors=fe.SEUIL_HORS,
@@ -131,6 +140,11 @@ td.vert{background:var(--vert-bg);color:var(--vert);font-weight:600}
 tr.joueur{cursor:pointer}
 tr.joueur:hover td{filter:brightness(.97)}
 tr.detail td{background:var(--bg);white-space:normal;text-align:left;font-size:13px}
+.sch{width:100%;height:auto;display:block}
+.sch text{font-family:inherit;fill:var(--texte)}
+.sch .axe{fill:var(--doux);font-size:2.3px}
+.legende{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:13px;color:var(--doux)}
+.legende i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 .fl{font-size:1.25em;font-weight:700}
 .fl.vert{color:var(--vert)}.fl.rouge{color:var(--rouge)}
 .puce{display:inline-block;border-radius:999px;padding:1px 9px;margin:1px 3px 1px 0;font-size:12px;background:var(--rouge-bg);color:var(--rouge)}
@@ -156,12 +170,12 @@ tr.detail td{background:var(--bg);white-space:normal;text-align:left;font-size:1
     <label>du <input type="date" id="debut"></label> <label>au <input type="date" id="fin"></label></span>
 </div>
 <div id="etat" class="sous"></div>
-<h2>Bilan alliance</h2><div class="kpis" id="bilan"></div>
-<h2>1. Bilan des chaînes</h2><div class="cartes" id="chaines"></div>
-<h2>2. Champions</h2><div class="cartes" id="champions"></div>
-<h2>3. Origine du tdc gagné par l'alliance</h2><div id="origine"></div>
-<h2>4. À signaler</h2><div id="signaler"></div>
-<h2>5. Tous les joueurs <span class="sous" style="text-transform:none;letter-spacing:0">— cliquer sur un joueur pour voir ses floods</span></h2>
+<h2>1. Bilan alliance</h2><div class="kpis" id="bilan"></div><div id="origine" style="margin-top:14px"></div>
+<h2>2. Bilan des chaînes</h2><div class="cartes" id="chaines"></div>
+<h2>3. Schéma des chaînes</h2><div class="carte" id="schema"></div>
+<h2>4. Champions</h2><div class="cartes" id="champions"></div>
+<h2>5. À signaler</h2><div id="signaler"></div>
+<h2>6. Tous les joueurs <span class="sous" style="text-transform:none;letter-spacing:0">— cliquer sur un joueur pour voir ses floods</span></h2>
 <div id="joueurs"></div>
 <p class="note" id="seuils"></p>
 </main>
@@ -242,6 +256,66 @@ function stats(W) {
 
 const puce = x => `<span class="puce${x === "données fragiles" ? " jaune" : x === "floods hors chaîne" ? " orange" : ""}">${x}</span>`;
 
+function schema(W) {
+  const i1 = W.idx[W.idx.length - 1], set = new Set(W.idx);
+  const mem = DATA.membres.filter(m => DATA.pos[m.pseudo]);
+  if (!mem.length) { $("schema").innerHTML = '<span class="vide">Positions des joueurs indisponibles pour le moment.</span>'; return; }
+  const tdc = n => DATA.tdc[n][i1 + 1] || 0, tmax = Math.max(...mem.map(m => tdc(m.pseudo)), 1);
+  const R = n => 0.9 + 3.0 * Math.sqrt(tdc(n) / tmax);
+  const XY = n => DATA.pos[n];
+  const flux = {};
+  for (const [i, a, c, x] of DATA.att) if (set.has(i)) flux[a + ">" + c] = (flux[a + ">" + c] || 0) + x;
+  const COL = {Grenier: "#2f9e4f", Passeur: "#1f78d1", Chasseur: "#d64545"};
+  const edges = [];
+  for (const ch of ["ouest", "est"]) {
+    const ms = mem.filter(m => m.chaine === ch);
+    for (const a of ms) for (const b of ms) if (b.pos === a.pos + 1) edges.push({a, b, f: flux[a.pseudo + ">" + b.pseudo] || 0});
+  }
+  const fmax = Math.max(...edges.map(e => e.f), 1);
+  let fl = "", pills = "", nodes = "", grille = "";
+  for (let v = 0; v <= 100; v += 10) {
+    grille += `<text class="axe" x="${v}" y="-3.5" text-anchor="middle">${v}</text><text class="axe" x="-5" y="${v + 0.8}" text-anchor="end">${v}</text>`;
+    for (let w = 0; w <= 70; w += 10) grille += `<circle cx="${v}" cy="${w}" r="0.35" fill="var(--bord)"/>`;
+  }
+  for (const e of edges) {
+    const [x1, y1] = XY(e.a.pseudo), [x2, y2] = XY(e.b.pseudo), r1 = R(e.a.pseudo), r2 = R(e.b.pseudo);
+    const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+    const couleur = e.b.type === "Chasseur" ? COL.Chasseur : e.a.type === "Grenier" ? COL.Grenier : COL.Passeur;
+    const zero = e.f === 0, w = zero ? 0.3 : 0.4 + 2.6 * Math.pow(e.f / fmax, 0.65);
+    const s = [x1 + ux * (r1 + 0.6), y1 + uy * (r1 + 0.6)], en = [x2 - ux * (r2 + 0.6), y2 - uy * (r2 + 0.6)];
+    const hl = Math.max(1.8, w * 1.8), hw = Math.max(1.3, w * 1.1), b = [en[0] - ux * hl, en[1] - uy * hl];
+    const pt = (q, k) => `${(q[0] + nx * k).toFixed(2)},${(q[1] + ny * k).toFixed(2)}`;
+    const titre = `<title>${esc(e.a.pseudo)} → ${esc(e.b.pseudo)} : ${fmt(e.f)} sur la plage</title>`;
+    fl += zero
+      ? `<g opacity=".7"><line x1="${s[0]}" y1="${s[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${couleur}" stroke-width="0.3" stroke-dasharray="1 0.9"/>
+         <polygon points="${pt(b, hw)} ${en[0].toFixed(2)},${en[1].toFixed(2)} ${pt(b, -hw)}" fill="${couleur}" opacity=".6"/>${titre}</g>`
+      : `<polygon points="${pt(s, w / 2)} ${pt(b, w / 2)} ${pt(b, hw)} ${en[0].toFixed(2)},${en[1].toFixed(2)} ${pt(b, -hw)} ${pt(b, -w / 2)} ${pt(s, -w / 2)}" fill="${couleur}" opacity=".88">${titre}</polygon>`;
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, d = String(Math.round(L)), pw = 2.6 + 1.25 * d.length;
+    pills += `<rect x="${(mx - pw / 2).toFixed(2)}" y="${(my - 1.5).toFixed(2)}" width="${pw}" height="3" rx="1.5" fill="var(--carte)" stroke="${couleur}" stroke-width="0.25"/>
+      <text x="${mx.toFixed(2)}" y="${(my + 0.9).toFixed(2)}" text-anchor="middle" style="font-size:2.3px">${d}</text>`;
+  }
+  const boites = [], pts = mem.map(m => ({x: XY(m.pseudo)[0], y: XY(m.pseudo)[1], r: R(m.pseudo)}));
+  const libre = q => q.x >= -9 && q.x + q.w <= 115 && !boites.some(o => q.x < o.x + o.w && q.x + q.w > o.x && q.y < o.y + 3.4 && q.y + 3.4 > o.y) &&
+    !pts.some(o => q.x < o.x + o.r && q.x + q.w > o.x - o.r && q.y < o.y + o.r && q.y + 3.4 > o.y - o.r);
+  for (const m of [...mem].sort((a, b) => XY(a.pseudo)[1] - XY(b.pseudo)[1])) {
+    const [x, y] = XY(m.pseudo), r = R(m.pseudo), c = COL[m.type], largeur = 1.7 * m.pseudo.length + 2.2;
+    const D = r + 0.8, dr = {x: x + D, y: y - 1.7, w: largeur}, ga = {x: x - D - largeur, y: y - 1.7, w: largeur};
+    const cand = (x > 80 ? [ga, dr] : [dr, ga]).concat([{x: dr.x, y: y + 1.5, w: largeur}, {x: dr.x, y: y - 4.9, w: largeur},
+      {x: ga.x, y: y + 1.5, w: largeur}, {x: ga.x, y: y - 4.9, w: largeur}, {x: x - largeur / 2, y: y + r + 0.8, w: largeur},
+      {x: x - largeur / 2, y: y - r - 4.2, w: largeur}, {x: dr.x, y: y + 4.9, w: largeur}, {x: ga.x, y: y + 4.9, w: largeur}]);
+    const ch = cand.find(libre) || cand[0], bx = ch.x, by = ch.y;
+    boites.push({x: bx, y: by, w: largeur});
+    nodes += `<g><circle cx="${x}" cy="${y}" r="${(r * 1.6).toFixed(2)}" fill="${c}" opacity=".13"/>
+      <circle cx="${x}" cy="${y}" r="${r.toFixed(2)}" fill="${c}"><title>${esc(m.pseudo)} — tdc ${fmt(tdc(m.pseudo))}</title></circle>
+      <rect x="${bx.toFixed(2)}" y="${by.toFixed(2)}" width="${largeur.toFixed(2)}" height="3.4" rx="0.9" fill="var(--carte)" stroke="${c}" stroke-width="0.3"/>
+      <text x="${(bx + largeur / 2).toFixed(2)}" y="${(by + 2.45).toFixed(2)}" text-anchor="middle" style="font-size:2.5px;font-weight:600">${esc(m.pseudo)}</text></g>`;
+  }
+  $("schema").innerHTML = `<svg class="sch" viewBox="-10 -7 126 80" role="img" aria-label="Schéma des chaînes">${grille}${fl}${pills}${nodes}</svg>
+    <div class="legende"><span><i style="background:${COL.Grenier}"></i>Grenier</span><span><i style="background:${COL.Passeur}"></i>Passeur</span>
+    <span><i style="background:${COL.Chasseur}"></i>Chasseur</span><span>Taille du point : tdc au ${quand(S[i1].t)}</span>
+    <span>Épaisseur de la flèche : tdc pris sur la plage (pointillé : aucun flux)</span><span>Pastille : distance en cases</span></div>`;
+}
+
 function rendre() {
   const W = fenetre();
   $("meta").textContent = "Données jusqu'au relevé du " + quand(S[S.length - 1].t) + " (heure de Paris)";
@@ -290,13 +364,15 @@ function rendre() {
     carteChamp("🏆 Meilleur passeur", champ("Passeur", "pct", true), "Passeur") +
     carteChamp("👾 Moins bon passeur", champ("Passeur", "pct", false), "Passeur");
 
+  schema(W);
+
   // 3. origine du tdc
   const croissance = (arr.tdc !== null && dep.tdc !== null) ? arr.tdc - dep.tdc : null;
   const chasseAll = ch.ouest.chasse + ch.est.chasse;
   const ligne = (lib, x) => `<tr><td>${lib}</td><td>${fmt(x)}</td><td>${croissance ? (pct(x, croissance) ?? "") + " %" : ""}
     <span class="barreg" style="width:${Math.max(0, Math.min(100, pct(x, croissance) || 0)) * 1.2}px"></span></td></tr>`;
   $("origine").innerHTML = croissance === null ? `<p class="vide">Totaux d'alliance indisponibles sur cette plage.</p>` :
-    `<table><tr><th></th><th>tdc</th><th>% de la croissance</th></tr>` + ligne("Croissance du tdc total", croissance) +
+    `<table><tr><th>Origine du tdc gagné par l'alliance</th><th>tdc</th><th>% de la croissance</th></tr>` + ligne("Croissance du tdc total", croissance) +
     ligne("dont chasse (minimum)", chasseAll) + ligne("dont hors chasse (maximum = croissance − chasse)", Math.max(croissance - chasseAll, 0)) +
     `</table><p class="note">La part hors chasse est une fourchette : de la chasse masquée par une perte dans la même heure la réduit.</p>`;
 
