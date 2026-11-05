@@ -20,7 +20,8 @@ MAX_COMPLETER = int(os.environ.get("COMPLETER_MAX", "40"))  # versions complét�
 EXTRA_IDS = {572}  # Oseil (alliance Fast) : seul joueur externe suivi
 
 AL_COLS = ["version", "date_utc", "terrain_total", "variation_horaire", "ecart_heures", "source",
-           "membres", "fourmiliere", "techno", "trophees"]
+           "membres", "fourmiliere", "techno", "trophees",
+           "rang_membres", "rang_tdc", "rang_tdc_membre", "rang_fourmiliere", "rang_techno", "rang_trophees", "nb_alliances"]
 PL_COLS = ["version", "date_utc", "id", "pseudo", "alliance", "terrain", "variation_horaire", "ecart_heures", "source"]
 
 
@@ -204,10 +205,26 @@ def build_numbers():
 
 
 def totaux(players):
-    """Totaux de l'alliance pour un relevé : membres, fourmilière, technologie, trophées (sommes sur les membres)."""
-    m = [p for p in players if p["alliance"] == TAG]
-    return [len(m), sum(p["buildingScore"] for p in m), sum(p["technologyScore"] for p in m),
-            sum(p["trophyScore"] for p in m)]
+    """Totaux de l'alliance (membres, fourmilière, technologie, trophées) puis son classement parmi toutes les
+    alliances du serveur pour chacune des 6 données (membres, tdc, tdc par membre, fourmilière, techno, trophées)."""
+    stats = {}
+    for p in players:
+        if not p["alliance"]:
+            continue
+        d = stats.setdefault(p["alliance"], [0, 0, 0, 0, 0])
+        d[0] += 1
+        d[1] += p["field"]
+        d[2] += p["buildingScore"]
+        d[3] += p["technologyScore"]
+        d[4] += p["trophyScore"]
+    moi = stats.get(TAG, [0] * 5)
+    par_membre = lambda d: d[1] / d[0] if d[0] else 0
+
+    def rang(f):
+        return 1 + sum(1 for d in stats.values() if f(d) > f(moi))
+
+    return [moi[0], moi[2], moi[3], moi[4], rang(lambda d: d[0]), rang(lambda d: d[1]), rang(par_membre),
+            rang(lambda d: d[2]), rang(lambda d: d[3]), rang(lambda d: d[4]), len(stats)]
 
 
 def completer_totaux():
@@ -216,12 +233,14 @@ def completer_totaux():
         return
     rows = lire(CSV_AL)
     data = [dict(zip(AL_COLS, r + [""] * (len(AL_COLS) - len(r)))) for r in rows[1:]]
-    manquants = sorted((r for r in data if r["membres"] == ""), key=lambda r: r["version"], reverse=True)[:MAX_COMPLETER]
+    manquants = sorted((r for r in data if r["nb_alliances"] == ""), key=lambda r: r["version"], reverse=True)[:MAX_COMPLETER]
     for i, r in enumerate(manquants):
         if i:
             time.sleep(2)
         try:
-            r["membres"], r["fourmiliere"], r["techno"], r["trophees"] = totaux(get(f"{BASE}players/?version={r['version']}"))
+            valeurs = totaux(get(f"{BASE}players/?version={r['version']}"))
+            for cle, v in zip(AL_COLS[6:], valeurs):
+                r[cle] = v
         except Exception as e:  # version introuvable : on la laisse vide
             print("totaux indisponibles", r["version"], e)
     if manquants:

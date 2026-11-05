@@ -68,7 +68,9 @@ def donnees(D, lignes_att):
     num = lambda r, k: int(r[k]) if len(r) > k and r[k] != "" else None
     totaux = [{"tdc": num(al[v], 2) if v in al else None, "mem": num(al[v], 6) if v in al else None,
                "fou": num(al[v], 7) if v in al else None, "tec": num(al[v], 8) if v in al else None,
-               "tro": num(al[v], 9) if v in al else None} for v in versions]
+               "tro": num(al[v], 9) if v in al else None,
+               "rg": [num(al[v], k) for k in range(10, 16)] if v in al else [None] * 6,
+               "na": num(al[v], 16) if v in al else None} for v in versions]
     # tdc de chaque joueur à chaque relevé, et positions (pour le schéma)
     tdc = {nom: [0] * n for nom in noms}
     for r in pl:
@@ -120,15 +122,16 @@ label{display:flex;gap:6px;align-items:center}
 .carte h3{margin:0 0 6px;font-size:13px;color:var(--doux);text-transform:uppercase;letter-spacing:.04em}
 .chiffre{font-size:24px;font-weight:600}
 .delta{font-size:13px;font-weight:600;margin-top:2px}
+.rang{font-size:13px;margin-top:6px;color:var(--doux)}.rang b{color:var(--texte)}
 .delta.plus{color:var(--vert)}.delta.moins{color:var(--rouge)}.delta.nul{color:var(--doux)}
 table{border-collapse:collapse;width:100%;background:var(--carte);border:1px solid var(--bord);border-radius:10px;overflow:hidden}
 .tj{table-layout:fixed;width:100%}
-.tj th:first-child{width:22%}
+.tj th:first-child{width:20%}
 .tj th,.tj td{white-space:normal;padding:8px 7px;font-size:15px;line-height:1.3}
 .tj th{font-size:12px}
 .tj .puce{font-size:12px;padding:1px 8px;white-space:normal;line-height:1.15;border-radius:10px}
-.tj th.sig{width:18%}
-.tj th.n{width:10%;padding-left:4px;padding-right:4px}
+.tj th.sig{width:17%}
+.tj th.n{width:9%;padding-left:4px;padding-right:4px}
 .tj td:not(:first-child):not(.sig){padding-left:4px;padding-right:4px}
 .tj td:first-child .sous{font-size:12px}
 @media (max-width:560px){.tj .opt{display:none}.tj{table-layout:auto}.tj th:first-child,.tj th.n,.tj th.sig{width:auto}.tj th,.tj td{padding:6px 2px;font-size:12px}.tj th{font-size:9.5px}.tj .puce{font-size:10px;padding:0 4px}}
@@ -227,7 +230,8 @@ function stats(W) {
     extg: somme(idx, i => DATA.chaine[c].extg[i]), extp: somme(idx, i => DATA.chaine[c].extp[i])};
   const avant = S.map((s, i) => i).filter(i => S[i].t <= W.t0);
   const hAvant = somme(avant, i => S[i].h);
-  const mid = W.t0 + (W.t1 - W.t0) / 2;
+  const set = new Set(idx), nbFl = {};
+  for (const [i, a] of DATA.att) if (set.has(i)) nbFl[a] = (nbFl[a] || 0) + 1;
   for (const m of DATA.membres) {
     const n = m.pseudo, chass = m.type === "Chasseur";
     const montant = i => chass ? DATA.c[n][i] : DATA.s[n][i];
@@ -247,7 +251,7 @@ function stats(W) {
       const A = rate(prec, montant), B = rate(idx, montant);
       if (A) { ratio = B / A; tendance = ratio - 1 > T.tendance ? "↑" : ratio - 1 < -T.tendance ? "↓" : "→"; }
     }
-    const s = {m, moy, tot, pct: pc, inc, hors, pause: Math.round(pause / H), tendance, ratio, signaux: []};
+    const s = {m, moy, tot, nb: chass ? idx.filter(i => DATA.c[n][i] > 0).length : (nbFl[n] || 0), pct: pc, inc, hors, pause: Math.round(pause / H), tendance, ratio, signaux: []};
     if (!chass && pc !== null && pc < T.noeud) s.signaux.push("ralentit la chaîne");
     if (ratio !== null && 100 * ratio < T.habitude) s.signaux.push("perf en baisse");
     if (inc !== null && inc > T.incertain) s.signaux.push("données fragiles");
@@ -334,13 +338,20 @@ function rendre() {
   const i0 = W.idx[0], i1 = W.idx[W.idx.length - 1], dep = AL[i0], arr = AL[i1 + 1];
 
   // bilan alliance : valeur à la fin de la plage et variation sur la plage
-  const kpi = (lib, v, d, fmtv = fmt) => `<div class="carte"><h3>${lib}</h3><div class="chiffre">${v === null || v === undefined ? "—" : fmtv(v)}</div>
-    <div class="delta ${d > 0 ? "plus" : d < 0 ? "moins" : "nul"}">${d === null || d === undefined ? "" : (d === 0 ? "=" : sgn(d)) + " sur la plage"}</div></div>`;
+  const rang = ri => {
+    const r = arr.rg[ri], r0 = dep.rg[ri];
+    if (r === null || r === undefined) return "";
+    let ch = "";
+    if (r0 !== null && r0 !== undefined) { const dl = r0 - r; ch = dl > 0 ? ` <span class="delta plus">▲ ${dl}</span>` : dl < 0 ? ` <span class="delta moins">▼ ${-dl}</span>` : ` <span class="sous">=</span>`; }
+    return `<div class="rang">Classement : <b>${r === 1 ? "1er" : r + "e"}</b> / ${arr.na}${ch}</div>`;
+  };
+  const kpi = (lib, v, d, ri) => `<div class="carte"><h3>${lib}</h3><div class="chiffre">${v === null || v === undefined ? "—" : fmt(v)}</div>
+    <div class="delta ${d > 0 ? "plus" : d < 0 ? "moins" : "nul"}">${d === null || d === undefined ? "" : (d === 0 ? "=" : sgn(d)) + " sur la plage"}</div>${rang(ri)}</div>`;
   const dlt = k => (arr[k] !== null && dep[k] !== null) ? arr[k] - dep[k] : null;
   const pm = a => (a.tdc !== null && a.mem) ? a.tdc / a.mem : null;
-  $("bilan").innerHTML = kpi("Membres", arr.mem, dlt("mem")) + kpi("TDC", arr.tdc, dlt("tdc")) +
-    kpi("TDC / membre", pm(arr), (pm(arr) !== null && pm(dep) !== null) ? pm(arr) - pm(dep) : null) +
-    kpi("Fourmilière", arr.fou, dlt("fou")) + kpi("Techno", arr.tec, dlt("tec")) + kpi("Trophées", arr.tro, dlt("tro"));
+  $("bilan").innerHTML = kpi("Membres", arr.mem, dlt("mem"), 0) + kpi("TDC", arr.tdc, dlt("tdc"), 1) +
+    kpi("TDC / membre", pm(arr), (pm(arr) !== null && pm(dep) !== null) ? pm(arr) - pm(dep) : null, 2) +
+    kpi("Fourmilière", arr.fou, dlt("fou"), 3) + kpi("Techno", arr.tec, dlt("tec"), 4) + kpi("Trophées", arr.tro, dlt("tro"), 5);
 
   // 1. chaînes
   let h = "";
@@ -390,16 +401,16 @@ function rendre() {
 
   // 5. tous les joueurs
   const cl = c => c ? ` class="${c}"` : "";
-  let t = `<table class="tj"><tr><th>Joueur</th><th class="n">Moy.<br>/ jour</th><th class="n">% tdc<br>chaîne</th><th class="n opt">% tdc<br>hors chaîne</th><th class="n">Tendance</th><th class="n opt">%<br>incertain</th><th class="n">Pause<br>max (h)</th><th class="g sig">Signaux</th></tr>`;
+  let t = `<table class="tj"><tr><th>Joueur</th><th class="n">Moy.<br>/ jour</th><th class="n">Nb flood<br>/ chasse</th><th class="n">% tdc<br>chaîne</th><th class="n opt">% tdc<br>hors chaîne</th><th class="n">Tendance</th><th class="n opt">%<br>incertain</th><th class="n">Pause<br>max (h)</th><th class="g sig">Signaux</th></tr>`;
   for (const c of ["ouest", "est"]) {
-    t += `<tr class="titre"><td colspan="8">Chaîne ${c}</td></tr>`;
+    t += `<tr class="titre"><td colspan="9">Chaîne ${c}</td></tr>`;
     for (const typ of POSTES) for (const m of DATA.membres.filter(m => m.type === typ && m.chaine === c).sort((a, b) => a.pos - b.pos)) {
       const s = st[m.pseudo];
       const c2 = (typ !== "Chasseur" && s.pct !== null && s.pct < T.noeud) ? "rouge" : "";
       const fl = s.tendance ? `<span class="fl ${s.tendance === "↑" ? "vert" : s.tendance === "↓" ? "rouge" : ""}">${s.tendance}</span>` : "";
       const c6 = (s.inc !== null && s.inc > T.incertain) ? "jaune" : "", c7 = (s.hors !== null && s.hors > T.hors) ? "orange" : "";
       t += `<tr class="joueur" data-n="${esc(m.pseudo)}"><td><b>${esc(m.pseudo)}</b><div class="sous">${esc(m.type)} · ${m.pos}</div></td>
-        <td>${fmt(s.moy)}</td><td${cl(c2)}>${s.pct !== null ? s.pct + " %" : ""}</td><td class="opt${c7 ? " " + c7 : ""}">${s.hors !== null ? s.hors + " %" : ""}</td><td>${fl}</td>
+        <td>${fmt(s.moy)}</td><td>${s.nb}</td><td${cl(c2)}>${s.pct !== null ? s.pct + " %" : ""}</td><td class="opt${c7 ? " " + c7 : ""}">${s.hors !== null ? s.hors + " %" : ""}</td><td>${fl}</td>
 <td class="opt${c6 ? " " + c6 : ""}">${s.inc !== null ? s.inc + " %" : ""}</td>
         <td>${s.pause}</td><td class="g sig">${s.signaux.map(puce).join("")}</td></tr>`;
     }
@@ -415,15 +426,19 @@ function rendre() {
     }
     const liste = (o, f) => Object.entries(o).sort((a, b) => b[1].x - a[1].x).map(([k, v]) => `${f} ${esc(k)} ${fmt(v.x)}${v.q ? " ?" : ""}`).join(" ; ");
     const d = document.createElement("tr"); d.className = "detail";
-    d.innerHTML = `<td colspan="8"><div><b>Envoyés</b> : ${liste(lances, "→") || "<span class=vide>aucun flood</span>"}</div>
-      <div><b>Subis</b> : ${liste(subis, "←") || "<span class=vide>aucun</span>"}</div></td>`;
+    const hunter = st[n].m.type === "Chasseur";
+    const evts = hunter ? W.idx.filter(i => DATA.c[n][i] > 0) : [];
+    const premier = hunter
+      ? `<div><b>Chasses (${evts.length})</b>${evts.length ? ` — total ${fmt(evts.reduce((s, i) => s + DATA.c[n][i], 0))} : ` + evts.map(i => `${quand(S[i].t)} +${fmt(DATA.c[n][i])}`).join(" ; ") : " : <span class=vide>aucune</span>"}</div>`
+      : `<div><b>Envoyés (${st[n].nb} flood${st[n].nb > 1 ? "s" : ""})</b> : ${liste(lances, "→") || "<span class=vide>aucun flood</span>"}</div>`;
+    d.innerHTML = `<td colspan="9">${premier}<div><b>Subis</b> : ${liste(subis, "←") || "<span class=vide>aucun</span>"}</div></td>`;
     tr.after(d);
   }));
   $("seuils").textContent = `Seuils : ralentit la chaîne < ${T.noeud} % du chassé ; perf en baisse < ${T.habitude} % des 48 h précédentes ; ` +
     `données fragiles > ${T.incertain} % d'envois à cible incertaine ; floods hors chaîne (vers un joueur hors alliance, plus de ${T.horsChasse} % du chassé quotidien de la chaîne) > ${T.hors} % ; ` +
     `Tout est comparé au tdc chassé de la chaîne. ` +
     `Tendance : la chasse (chasseurs) ou les floods envoyés (autres) sur la plage contre les 48 h qui la précèdent (↑ ↓ au-delà de ±${Math.round(T.tendance * 100)} %). « Pause max » : plus longue période sans activité. ` +
-    `Jaune = données fragiles, orange = floods hors chaîne. « Aujourd'hui » et « Hier » suivent les jours à Paris.`;
+    `« Nb flood / chasse » : nombre de floods détectés (un par heure et par cible) ou, pour les chasseurs, d\'heures où la chasse a progressé. Classements : parmi les alliances du serveur, d\'après les exports. Jaune = données fragiles, orange = floods hors chaîne. « Aujourd'hui » et « Hier » suivent les jours à Paris.`;
 }
 $("plage").addEventListener("change", () => {
   $("perso").hidden = $("plage").value !== "perso";
