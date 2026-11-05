@@ -25,9 +25,16 @@ PL_COLS = ["version", "date_utc", "id", "pseudo", "alliance", "terrain", "variat
 
 
 def get(url):
+    """Lit un JSON de l'API ; jusqu'à 4 essais (réseau instable sur les serveurs partagés)."""
     req = urllib.request.Request(url, headers={"User-Agent": "ambre-history-collector"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.load(r)
+    for essai in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.load(r)
+        except Exception:
+            if essai == 3:
+                raise
+            time.sleep(3 * 2 ** essai)
 
 
 def parse(v):
@@ -250,7 +257,7 @@ def traiter(state, version, players):
     return len(rows)
 
 
-def main():
+def collecter():
     state = json.load(open(STATE)) if os.path.exists(STATE) else {}
     state.setdefault("last", None)
     state.setdefault("ids", [])
@@ -269,6 +276,14 @@ def main():
         json.dump(state, open(STATE, "w"))
         print("ok", v, n, "joueurs")
     completer_totaux()
+
+
+def main():
+    # une panne réseau ne doit pas empêcher de republier la page avec les données déjà enregistrées
+    try:
+        collecter()
+    except Exception as e:
+        print(f"::warning::collecte impossible ce coup-ci : {e}")
     build_numbers()  # toujours : la page affiche l'heure de génération
 
 
