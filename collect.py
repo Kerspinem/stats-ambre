@@ -16,9 +16,11 @@ CSV_PL = os.path.join(DIR, "historique_joueurs.csv")
 CSV_ROLES = os.path.join(DIR, "roles.csv")
 NUMBERS = os.path.join(DIR, "ambre.numbers")
 MAX_RATTRAPAGE = 48
+MAX_COMPLETER = int(os.environ.get("COMPLETER_MAX", "40"))  # versions complétées par exécution (totaux d'alliance)
 EXTRA_IDS = {572}  # Oseil (alliance Fast) : seul joueur externe suivi
 
-AL_COLS = ["version", "date_utc", "terrain_total", "variation_horaire", "ecart_heures", "source"]
+AL_COLS = ["version", "date_utc", "terrain_total", "variation_horaire", "ecart_heures", "source",
+           "membres", "fourmiliere", "techno", "trophees"]
 PL_COLS = ["version", "date_utc", "id", "pseudo", "alliance", "terrain", "variation_horaire", "ecart_heures", "source"]
 
 
@@ -194,6 +196,35 @@ def build_numbers():
     os.replace(tmp, NUMBERS)
 
 
+def totaux(players):
+    """Totaux de l'alliance pour un relevé : membres, fourmilière, technologie, trophées (sommes sur les membres)."""
+    m = [p for p in players if p["alliance"] == TAG]
+    return [len(m), sum(p["buildingScore"] for p in m), sum(p["technologyScore"] for p in m),
+            sum(p["trophyScore"] for p in m)]
+
+
+def completer_totaux():
+    """Complète les anciens relevés d'alliance qui n'ont pas encore les totaux (les plus récents d'abord)."""
+    if not os.path.exists(CSV_AL):
+        return
+    rows = lire(CSV_AL)
+    data = [dict(zip(AL_COLS, r + [""] * (len(AL_COLS) - len(r)))) for r in rows[1:]]
+    manquants = sorted((r for r in data if r["membres"] == ""), key=lambda r: r["version"], reverse=True)[:MAX_COMPLETER]
+    for i, r in enumerate(manquants):
+        if i:
+            time.sleep(2)
+        try:
+            r["membres"], r["fourmiliere"], r["techno"], r["trophees"] = totaux(get(f"{BASE}players/?version={r['version']}"))
+        except Exception as e:  # version introuvable : on la laisse vide
+            print("totaux indisponibles", r["version"], e)
+    if manquants:
+        with open(CSV_AL, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=AL_COLS)
+            w.writeheader()
+            w.writerows(data)
+        print("totaux complétés :", len(manquants))
+
+
 def traiter(state, version, players):
     """Enregistre un relevé : total de l'alliance, tdc des joueurs suivis, variations."""
     t = parse(version)
@@ -201,7 +232,7 @@ def traiter(state, version, players):
     gap = round((t - parse(state["last"])).total_seconds() / 3600) if state["last"] else ""
     total = sum(p["field"] for p in players if p["alliance"] == TAG)
     prev = state.get("total")
-    append(CSV_AL, AL_COLS, [[version, d, total, total - prev if prev is not None else "", gap, "horaire"]])
+    append(CSV_AL, AL_COLS, [[version, d, total, total - prev if prev is not None else "", gap, "horaire"] + totaux(players)])
     state["total"] = total
     # on continue de suivre un joueur après son départ de l'alliance
     ids = set(state["ids"]) | EXTRA_IDS | {p["id"] for p in players if p["alliance"] == TAG}
@@ -237,6 +268,7 @@ def main():
         n = traiter(state, v, get(f"{BASE}players/?version={v}"))
         json.dump(state, open(STATE, "w"))
         print("ok", v, n, "joueurs")
+    completer_totaux()
     build_numbers()  # toujours : la page affiche l'heure de génération
 
 
