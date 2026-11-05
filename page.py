@@ -131,6 +131,8 @@ td.vert{background:var(--vert-bg);color:var(--vert);font-weight:600}
 tr.joueur{cursor:pointer}
 tr.joueur:hover td{filter:brightness(.97)}
 tr.detail td{background:var(--bg);white-space:normal;text-align:left;font-size:13px}
+.fl{font-size:1.25em;font-weight:700}
+.fl.vert{color:var(--vert)}.fl.rouge{color:var(--rouge)}
 .puce{display:inline-block;border-radius:999px;padding:1px 9px;margin:1px 3px 1px 0;font-size:12px;background:var(--rouge-bg);color:var(--rouge)}
 .puce.jaune{background:var(--jaune-bg);color:var(--jaune)}
 .puce.orange{background:var(--orange-bg);color:var(--orange)}
@@ -312,10 +314,10 @@ function rendre() {
     for (const typ of POSTES) for (const m of DATA.membres.filter(m => m.type === typ && m.chaine === c).sort((a, b) => a.pos - b.pos)) {
       const s = st[m.pseudo];
       const c2 = (typ !== "Chasseur" && s.pct !== null && s.pct < T.noeud) ? "rouge" : "";
-      const c4 = s.tendance === "↑" ? "vert" : s.tendance === "↓" ? "rouge" : "";
+      const fl = s.tendance ? `<span class="fl ${s.tendance === "↑" ? "vert" : s.tendance === "↓" ? "rouge" : ""}">${s.tendance}</span>` : "";
       const c6 = (s.inc !== null && s.inc > T.incertain) ? "jaune" : "", c7 = (s.hors !== null && s.hors > T.hors) ? "orange" : "";
       t += `<tr class="joueur" data-n="${esc(m.pseudo)}"><td><b>${esc(m.pseudo)}</b><div class="sous">${esc(m.type)} · ${m.pos}</div></td>
-        <td>${fmt(s.moy)}</td><td${cl(c2)}>${s.pct !== null ? s.pct + " %" : ""}</td><td${cl(c4)}>${s.tendance}</td>
+        <td>${fmt(s.moy)}</td><td${cl(c2)}>${s.pct !== null ? s.pct + " %" : ""}</td><td>${fl}</td>
 <td class="opt${c6 ? " " + c6 : ""}">${s.inc !== null ? s.inc + " %" : ""}</td>
         <td class="opt${c7 ? " " + c7 : ""}">${s.hors !== null ? s.hors + " %" : ""}</td><td>${s.pause}</td><td class="g">${s.signaux.map(puce).join("")}</td></tr>`;
     }
