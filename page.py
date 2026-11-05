@@ -125,7 +125,8 @@ table{border-collapse:collapse;width:100%;background:var(--carte);border:1px sol
 .tj{table-layout:auto}
 .tj th,.tj td{white-space:normal;padding:8px 7px;font-size:15px;line-height:1.3}
 .tj th{font-size:12px}
-.tj .puce{font-size:12px;padding:1px 8px}
+.tj .puce{font-size:12px;padding:1px 8px;white-space:normal;line-height:1.15;border-radius:10px}
+.tj .sig{width:98px;max-width:98px}
 .tj td:first-child .sous{font-size:12px}
 @media (max-width:560px){.tj .opt{display:none}}
 @media (max-width:640px){main{padding:14px 8px 40px}.tj th,.tj td{padding:6px 4px;font-size:13px}.tj th{font-size:10.5px}.tj .puce{font-size:11px;padding:0 6px}}
@@ -386,7 +387,7 @@ function rendre() {
 
   // 5. tous les joueurs
   const cl = c => c ? ` class="${c}"` : "";
-  let t = `<table class="tj"><tr><th>Joueur</th><th>Moy. / jour</th><th>% du chassé</th><th class="opt">% hors chaîne</th><th>Tendance</th><th class="opt">% incertain</th><th>Pause max (h)</th><th class="g">Signaux</th></tr>`;
+  let t = `<table class="tj"><tr><th>Joueur</th><th>Moy. / jour</th><th>% tdc chassé</th><th class="opt">% tdc hors chaîne</th><th>Tendance</th><th class="opt">% incertain</th><th>Pause max (h)</th><th class="g sig">Signaux</th></tr>`;
   for (const c of ["ouest", "est"]) {
     t += `<tr class="titre"><td colspan="8">Chaîne ${c}</td></tr>`;
     for (const typ of POSTES) for (const m of DATA.membres.filter(m => m.type === typ && m.chaine === c).sort((a, b) => a.pos - b.pos)) {
@@ -397,7 +398,7 @@ function rendre() {
       t += `<tr class="joueur" data-n="${esc(m.pseudo)}"><td><b>${esc(m.pseudo)}</b><div class="sous">${esc(m.type)} · ${m.pos}</div></td>
         <td>${fmt(s.moy)}</td><td${cl(c2)}>${s.pct !== null ? s.pct + " %" : ""}</td><td class="opt${c7 ? " " + c7 : ""}">${s.hors !== null ? s.hors + " %" : ""}</td><td>${fl}</td>
 <td class="opt${c6 ? " " + c6 : ""}">${s.inc !== null ? s.inc + " %" : ""}</td>
-        <td>${s.pause}</td><td class="g">${s.signaux.map(puce).join("")}</td></tr>`;
+        <td>${s.pause}</td><td class="g sig">${s.signaux.map(puce).join("")}</td></tr>`;
     }
   }
   $("joueurs").innerHTML = t + "</table>";
