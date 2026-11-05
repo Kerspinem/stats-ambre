@@ -122,16 +122,16 @@ label{display:flex;gap:6px;align-items:center}
 .delta{font-size:13px;font-weight:600;margin-top:2px}
 .delta.plus{color:var(--vert)}.delta.moins{color:var(--rouge)}.delta.nul{color:var(--doux)}
 table{border-collapse:collapse;width:100%;background:var(--carte);border:1px solid var(--bord);border-radius:10px;overflow:hidden}
-.tj{table-layout:auto;width:auto;max-width:100%}
-.tj td:first-child,.tj th:first-child{min-width:140px}
+.tj{table-layout:fixed;width:100%}
+.tj th:first-child{width:22%}
 .tj th,.tj td{white-space:normal;padding:8px 7px;font-size:15px;line-height:1.3}
 .tj th{font-size:12px}
 .tj .puce{font-size:12px;padding:1px 8px;white-space:normal;line-height:1.15;border-radius:10px}
-.tj .sig{width:98px;max-width:98px}
-.tj th.n{width:58px;padding-left:4px;padding-right:4px}
+.tj th.sig{width:18%}
+.tj th.n{width:10%;padding-left:4px;padding-right:4px}
 .tj td:not(:first-child):not(.sig){padding-left:4px;padding-right:4px}
 .tj td:first-child .sous{font-size:12px}
-@media (max-width:560px){.tj .opt{display:none}}
+@media (max-width:560px){.tj .opt{display:none}.tj{table-layout:auto}.tj th:first-child,.tj th.n,.tj th.sig{width:auto}.tj th,.tj td{padding:6px 2px;font-size:12px}.tj th{font-size:9.5px}.tj .puce{font-size:10px;padding:0 4px}}
 @media (max-width:640px){main{padding:14px 8px 40px}.tj th,.tj td{padding:6px 4px;font-size:13px}.tj th{font-size:10.5px}.tj .puce{font-size:11px;padding:0 6px}}
 th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--bord)}
 th{font-size:12px;color:var(--doux);font-weight:600;text-transform:uppercase;letter-spacing:.03em;background:var(--bg)}
@@ -404,7 +404,7 @@ function rendre() {
         <td>${s.pause}</td><td class="g sig">${s.signaux.map(puce).join("")}</td></tr>`;
     }
   }
-  $("joueurs").innerHTML = t + "</table>";
+  $("joueurs").innerHTML = `<div style="overflow-x:auto">${t}</table></div>`;  // ne défile que si l'écran est vraiment trop étroit
   document.querySelectorAll("tr.joueur").forEach(tr => tr.addEventListener("click", () => {
     const nxt = tr.nextElementSibling;
     if (nxt && nxt.classList.contains("detail")) { nxt.remove(); return; }
