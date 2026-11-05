@@ -1,0 +1,24 @@
+rang,pseudo,grade,role,type,numero,fleche,etat,chaine,position
+1,Kerspinem,Prophète,Grenier 1,Grenier,1,,Actif,ouest,1
+2,FinMaDow,Gardien,Grenier 1,Grenier,1,,Actif,ouest,2
+3,Banteux59,Rempart,Passeur 5↓,Passeur,5,↓,Actif,ouest,3
+4,3arno,Rempart,Passeur 2↓,Passeur,2,↓,Actif,ouest,4
+5,Airkan,Rempart,Passeur 3↓,Passeur,3,↓,Actif,ouest,5
+6,Imyellow,Rempart,Passeur 4↓,Passeur,4,↓,Actif,ouest,6
+7,Solkeon,Sentinelle,Chasseur,Chasseur,,,Actif,ouest,7
+8,Lil77,Sentinelle,Chasseur↓,Chasseur,,↓,Actif,ouest,7
+9,Vivie,Sentinelle,Chasseur↓,Chasseur,,↓,Actif,ouest,7
+10,Trainn,Sentinelle,Chasseur,Chasseur,,,Actif,ouest,7
+11,Color,Gardien,Grenier 1,Grenier,1,,Actif,est,1
+12,Marmotte,Gardien,Grenier 1,Grenier,1,,Actif,est,2
+13,Eleganzia,Gardien,Grenier 1,Grenier,1,,Actif,est,3
+14,Olivia,Rempart,Passeur 1↓,Passeur,1,↓,Actif,est,4
+15,AKAW,Rempart,Passeur 2↓,Passeur,2,↓,Actif,est,5
+16,DeusVult,Rempart,Passeur 3↓,Passeur,3,↓,Actif,est,6
+17,Raven1973,Rempart,Passeur 4↓,Passeur,4,↓,Actif,est,7
+18,Veil,Confident,Passeur 5↓,Passeur,5,↓,Actif,est,8
+19,APOCALYPSE,Sentinelle,Chasseur,Chasseur,,,Actif,est,9
+20,Sonard,Sentinelle,Chasseur,Chasseur,,,Actif,est,9
+21,Oqoh,Prophète,Chasseur,Chasseur,,,Actif,est,9
+22,SirAlucard,Sentinelle,Chasseur,Chasseur,,,Actif,est,9
+23,Cronos,Disciple,Grenier 1↑,Grenier,1,↑,En cours de suppression,,

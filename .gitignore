@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+ambre.numbers
+*.tmp
+docs/
+venv/
