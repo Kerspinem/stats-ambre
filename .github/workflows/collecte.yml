@@ -2,9 +2,9 @@ name: Collecte horaire
 
 on:
   schedule:
-    # GitHub saute ou retarde parfois des exécutions planifiées : on déclenche 4 fois par heure.
-    # Le script ne fait rien s'il n'y a pas de nouvelle version.
-    - cron: "3,18,33,48 * * * *"
+    # Secours : le déclenchement principal est un cron externe (workflow_dispatch). GitHub saute souvent
+    # les exécutions planifiées ; on garde une seule tentative par heure pour rester courtois avec l'API.
+    - cron: "12 * * * *"
   workflow_dispatch:        # lancement manuel depuis l'onglet Actions
 
 permissions:
