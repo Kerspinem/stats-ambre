@@ -271,7 +271,7 @@ function schema(W) {
     for (const a of ms) for (const b of ms) if (b.pos === a.pos + 1) edges.push({a, b, f: flux[a.pseudo + ">" + b.pseudo] || 0});
   }
   const fmax = Math.max(...edges.map(e => e.f), 1);
-  let fl = "", pills = "", nodes = "", grille = "";
+  let fl = "", traits = "", pills = "", nodes = "", grille = "";
   for (let v = 0; v <= 100; v += 10) {
     grille += `<text class="axe" x="${v}" y="-3.5" text-anchor="middle">${v}</text><text class="axe" x="-5" y="${v + 0.8}" text-anchor="end">${v}</text>`;
     for (let w = 0; w <= 70; w += 10) grille += `<circle cx="${v}" cy="${w}" r="0.35" fill="var(--bord)"/>`;
@@ -279,12 +279,16 @@ function schema(W) {
   for (const e of edges) {
     const [x1, y1] = XY(e.a.pseudo), [x2, y2] = XY(e.b.pseudo), r1 = R(e.a.pseudo), r2 = R(e.b.pseudo);
     const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
-    if (L < r1 + r2 + 3.5) continue;  // trop proches : pas de place pour une flèche lisible
     const couleur = e.b.type === "Chasseur" ? COL.Chasseur : e.a.type === "Grenier" ? COL.Grenier : COL.Passeur;
     if (e.f === 0) continue;  // pas de flux sur la plage : pas de flèche
-    const w = 0.8;  // flèche toujours identique
+    const rouge = e.b.type === "Chasseur", w = rouge ? 0.45 : 0.8;  // flèche toujours identique, plus fine vers les chasseurs
+    const titre0 = `<title>${esc(e.a.pseudo)} → ${esc(e.b.pseudo)} : ${fmt(e.f)} sur la plage</title>`;
+    if (L < r1 + r2 + 3.5) {  // trop proches : un simple trait au lieu d'une flèche
+      traits += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${couleur}" stroke-width="${w}" stroke-linecap="round">${titre0}</line>`;
+      continue;
+    }
     const s = [x1 + ux * (r1 + 0.6), y1 + uy * (r1 + 0.6)], en = [x2 - ux * (r2 + 0.6), y2 - uy * (r2 + 0.6)];
-    const hl = 2.0, hw = 1.25, b = [en[0] - ux * hl, en[1] - uy * hl];
+    const hl = rouge ? 1.5 : 2.0, hw = rouge ? 0.85 : 1.25, b = [en[0] - ux * hl, en[1] - uy * hl];
     const pt = (q, k) => `${(q[0] + nx * k).toFixed(2)},${(q[1] + ny * k).toFixed(2)}`;
     const titre = `<title>${esc(e.a.pseudo)} → ${esc(e.b.pseudo)} : ${fmt(e.f)} sur la plage</title>`;
     fl += `<polygon points="${pt(s, w / 2)} ${pt(b, w / 2)} ${pt(b, hw)} ${en[0].toFixed(2)},${en[1].toFixed(2)} ${pt(b, -hw)} ${pt(b, -w / 2)} ${pt(s, -w / 2)}" fill="${couleur}">${titre}</polygon>`;
@@ -308,10 +312,10 @@ function schema(W) {
       <rect x="${bx.toFixed(2)}" y="${by.toFixed(2)}" width="${largeur.toFixed(2)}" height="3.4" rx="0.9" fill="var(--carte)" stroke="${c}" stroke-width="0.3"/>
       <text x="${(bx + largeur / 2).toFixed(2)}" y="${(by + 2.45).toFixed(2)}" text-anchor="middle" style="font-size:2.5px;font-weight:600">${esc(m.pseudo)}</text></g>`;
   }
-  $("schema").innerHTML = `<svg class="sch" viewBox="-10 -7 126 80" role="img" aria-label="Schéma des chaînes">${grille}${fl}${pills}${nodes}</svg>
+  $("schema").innerHTML = `<svg class="sch" viewBox="-10 -7 126 80" role="img" aria-label="Schéma des chaînes">${grille}${fl}${pills}${nodes}${traits}</svg>
     <div class="legende"><span><i style="background:${COL.Grenier}"></i>Grenier</span><span><i style="background:${COL.Passeur}"></i>Passeur</span>
     <span><i style="background:${COL.Chasseur}"></i>Chasseur</span><span>Taille du point : tdc au ${quand(S[i1].t)}</span>
-    <span>Flèche : tdc pris sur la plage (pas de flèche : aucun flux)</span><span>Pastille : distance en cases (pas de flèche si les joueurs sont trop proches)</span></div>`;
+    <span>Flèche : tdc pris sur la plage (pas de flèche : aucun flux)</span><span>Pastille : distance en cases (trait simple si les joueurs sont trop proches)</span></div>`;
 }
 
 function rendre() {
