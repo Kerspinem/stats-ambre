@@ -231,7 +231,7 @@ function stats(W) {
       if (A) { ratio = B / A; tendance = ratio - 1 > T.tendance ? "↑" : ratio - 1 < -T.tendance ? "↓" : "→"; }
     }
     const s = {m, moy, tot, pct: pc, inc, hors, pause: Math.round(pause / H), tendance, ratio, signaux: []};
-    if (!chass && pc !== null && pc < T.noeud) s.signaux.push("retient le flux");
+    if (!chass && pc !== null && pc < T.noeud) s.signaux.push("ralentit la chaîne");
     if (ratio !== null && 100 * ratio < T.habitude) s.signaux.push("perf en baisse");
     if (inc !== null && inc > T.incertain) s.signaux.push("données fragiles");
     if (hors !== null && hors > T.hors) s.signaux.push("floods hors chaîne");
@@ -308,7 +308,7 @@ function rendre() {
 
   // 5. tous les joueurs
   const cl = c => c ? ` class="${c}"` : "";
-  let t = `<table class="tj"><tr><th>Joueur</th><th>Moy. / jour</th><th>% du chassé</th><th>Tendance</th><th class="opt">% incertain</th><th class="opt">% hors chaîne</th><th>Pause max (h)</th><th class="g">Signaux</th></tr>`;
+  let t = `<table class="tj"><tr><th>Joueur</th><th>Moy. / jour</th><th>% du chassé</th><th class="opt">% hors chaîne</th><th>Tendance</th><th class="opt">% incertain</th><th>Pause max (h)</th><th class="g">Signaux</th></tr>`;
   for (const c of ["ouest", "est"]) {
     t += `<tr class="titre"><td colspan="8">Chaîne ${c}</td></tr>`;
     for (const typ of POSTES) for (const m of DATA.membres.filter(m => m.type === typ && m.chaine === c).sort((a, b) => a.pos - b.pos)) {
@@ -317,9 +317,9 @@ function rendre() {
       const fl = s.tendance ? `<span class="fl ${s.tendance === "↑" ? "vert" : s.tendance === "↓" ? "rouge" : ""}">${s.tendance}</span>` : "";
       const c6 = (s.inc !== null && s.inc > T.incertain) ? "jaune" : "", c7 = (s.hors !== null && s.hors > T.hors) ? "orange" : "";
       t += `<tr class="joueur" data-n="${esc(m.pseudo)}"><td><b>${esc(m.pseudo)}</b><div class="sous">${esc(m.type)} · ${m.pos}</div></td>
-        <td>${fmt(s.moy)}</td><td${cl(c2)}>${s.pct !== null ? s.pct + " %" : ""}</td><td>${fl}</td>
+        <td>${fmt(s.moy)}</td><td${cl(c2)}>${s.pct !== null ? s.pct + " %" : ""}</td><td class="opt${c7 ? " " + c7 : ""}">${s.hors !== null ? s.hors + " %" : ""}</td><td>${fl}</td>
 <td class="opt${c6 ? " " + c6 : ""}">${s.inc !== null ? s.inc + " %" : ""}</td>
-        <td class="opt${c7 ? " " + c7 : ""}">${s.hors !== null ? s.hors + " %" : ""}</td><td>${s.pause}</td><td class="g">${s.signaux.map(puce).join("")}</td></tr>`;
+        <td>${s.pause}</td><td class="g">${s.signaux.map(puce).join("")}</td></tr>`;
     }
   }
   $("joueurs").innerHTML = t + "</table>";
@@ -337,7 +337,7 @@ function rendre() {
       <div><b>Subis</b> : ${liste(subis, "←") || "<span class=vide>aucun</span>"}</div></td>`;
     tr.after(d);
   }));
-  $("seuils").textContent = `Seuils : retient le flux < ${T.noeud} % du chassé ; perf en baisse < ${T.habitude} % des 48 h précédentes ; ` +
+  $("seuils").textContent = `Seuils : ralentit la chaîne < ${T.noeud} % du chassé ; perf en baisse < ${T.habitude} % des 48 h précédentes ; ` +
     `données fragiles > ${T.incertain} % d'envois à cible incertaine ; floods hors chaîne (vers un joueur hors alliance, plus de ${T.horsChasse} % du chassé quotidien de la chaîne) > ${T.hors} % ; ` +
     `Tout est comparé au tdc chassé de la chaîne. ` +
     `Tendance : la chasse (chasseurs) ou les floods envoyés (autres) sur la plage contre les 48 h qui la précèdent (↑ ↓ au-delà de ±${Math.round(T.tendance * 100)} %). « Pause max » : plus longue période sans activité. ` +

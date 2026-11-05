@@ -313,7 +313,7 @@ def feuille_synthese(lignes_att, D, N):
         m = st["m"]
         signaux = []
         if m["type"] != "Chasseur" and st["pct"] != "" and st["pct"] < SEUIL_NOEUD:
-            signaux.append("retient le flux")
+            signaux.append("ralentit la chaîne")
         if st["vs_hab"] != "" and st["vs_hab"] < SEUIL_HABITUDE:
             signaux.append("chasse en baisse")
         if st["inc"] != "" and st["inc"] > SEUIL_INCERTAIN:
@@ -377,6 +377,6 @@ def feuille_synthese(lignes_att, D, N):
                 if st["hors"] != "" and st["hors"] > SEUIL_HORS:
                     styles[(r, 7)] = "orange"
     L.append([])
-    L.append([f"Seuils : retient le flux < {SEUIL_NOEUD} % du chassé ; chasse en baisse < {SEUIL_HABITUDE} % de l'habitude ; "
+    L.append([f"Seuils : ralentit la chaîne < {SEUIL_NOEUD} % du chassé ; chasse en baisse < {SEUIL_HABITUDE} % de l'habitude ; "
               f"données fragiles > {SEUIL_INCERTAIN} % d'envois à cible incertaine ; floods hors chaîne (vers un joueur hors alliance, plus de {HORS_CHASSE} % du chassé du jour) > {SEUIL_HORS} % ; tendance ±{round(SEUIL_TENDANCE * 100)} % vs la plage précédente."])
     return L, styles
