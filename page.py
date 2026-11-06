@@ -373,9 +373,10 @@ function rendre() {
   };
   const carteChamp = (titre, s, typ) => !s ? `<div class="carte"><h3>${titre}</h3><span class="vide">—</span></div>` :
     `<div class="carte"><h3>${titre}</h3><div class="chiffre">${esc(s.m.pseudo)}</div>
-      <div class="sous">${esc(s.m.type)} · chaîne ${s.m.chaine} · rang ${s.m.pos}</div>
+      <div class="sous">${esc(s.m.type)} · chaîne ${s.m.chaine}</div>
       <div>${typ === "Chasseur" ? `<b>${fmt(s.moy)}</b> chassés / jour${s.pct !== null ? ` (${s.pct} % du chassé de la chaîne)` : ""}`
-        : `<b>${s.pct} %</b> du chassé de la chaîne (${fmt(s.moy)} envoyés / jour)`}</div></div>`;
+        : `<b>${s.pct} %</b> du chassé de la chaîne (${fmt(s.moy)} envoyés / jour)`}</div>
+      <div class="sous"><b>${s.nb}</b> ${typ === "Chasseur" ? "chasse" : "flood"}${s.nb > 1 ? "s" : ""} sur la période</div></div>`;
   $("champions").innerHTML = carteChamp("🏆 Meilleur chasseur", champ("Chasseur", "moy", true), "Chasseur") +
     carteChamp("👾 Moins bon chasseur", champ("Chasseur", "moy", false), "Chasseur") +
     carteChamp("🏆 Meilleur passeur", champ("Passeur", "pct", true), "Passeur") +
